@@ -1,0 +1,27 @@
+#lang racket/base
+
+
+(define d (lambda (i) 1.0))
+
+(define n (lambda (i) 1.0))
+
+
+(define (f n d k)
+
+
+  (if (= k 0)
+      1
+      (/ n (+ d (f n d (- k 1))))
+   )
+  
+
+  
+)
+
+
+(define c (/ 2 (+ 1 (sqrt 5))))
+
+(display c)
+(newline)
+
+(f n d 10)

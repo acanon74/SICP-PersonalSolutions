@@ -1,0 +1,7 @@
+#lang racket/base
+
+(define (not= expr value)
+  (not (eqv? expr value)))
+
+(define (square x)
+  (* x x))

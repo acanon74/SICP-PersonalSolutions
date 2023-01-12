@@ -1,0 +1,12 @@
+#lang racket/base
+(require "general_functions.rkt")
+
+
+(define (square-items items)
+
+  (if (null? items)
+      '()
+      (cons (square (car items)) (square-items (cdr y))))
+  )
+
+(square-list (list 1 2 3 4))
