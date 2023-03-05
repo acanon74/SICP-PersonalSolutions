@@ -1,0 +1,41 @@
+#lang racket/base
+
+(define (square x)
+  (* x x))
+
+(define l (list 1 (list 2 (list 3 4) 5)
+                (list 6 7)))
+
+
+(define (r tree f)
+  (cond ((null? tree) '())
+        ((not (pair? tree)) (f tree))
+        (else (cons (r (car tree) f)
+                    (r (cdr tree) f))))
+  )
+
+
+
+(newline)
+(display l)
+(r l square)
+(newline)
+
+(define (rm tree)
+  (define s (lambda (x)
+
+              (if (pair? x)
+                  (* x x)``````````````````````)))
+
+  (cond ((null? tree) '())
+        ((not (pair? tree)) (list tree 0))
+        (else (cons (map s (rm (car tree)))
+                    (map s (rm (cdr tree)))))
+
+
+  )
+
+
+  )
+
+(rm l)
