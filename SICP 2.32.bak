@@ -18,5 +18,3 @@
 (newline)
 (define t (subsets s))
 (display t)
-
-;;http://community.schemewiki.org/?sicp-ex-2.32
