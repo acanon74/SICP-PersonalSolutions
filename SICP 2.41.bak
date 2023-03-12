@@ -63,6 +63,11 @@
 
   ))
 
+(tri 5 12)
+(display "W")
+
+(display (list 1 2 3 4 5))
+
 (define (displayer n q)
 
   (if (> q n) ((display "\nEND") (error "Finished execution"))
@@ -71,44 +76,8 @@
        (display q)
        (displayer n (+ 1 q))))
 
-  )
-
-;;(tri 20 30)
-
-(define (measure-time f x p)
-  (let ([start (current-milliseconds)])
-    (f x p)
-    (- (current-milliseconds) start)))
-
-;;(flatmap (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1)))) (enumerate-interval 1 n))
-;;(enumerate-interval 1 (- (car (cdr i)) 1))
-;;general (- n 1) (- k 1) 1
-;;(enumerate-interval 1 (- (car (cdr i)) 1)))) (unique-pairs n)
-(define (general n k)
-
-  (cond ((= k 0) ('()))
-        ((= k 1) (enumerate-interval 1 n))
-        (else (flatmap (lambda (i) (map (lambda (j) (cons i j)) (general (- i 1) (- k 1)))) (enumerate-interval 1 n))
-))
-  
-
-)
-(unique-pairs 3)
-(general 3 2)
-  
-(define (newnew n q)
-
-  (flatmap (lambda (i) (if (= (+ (car i) (car (cdr i)) (car (cdr (cdr i)))) q) i null)) (general n 3))
-
 
 
   )
 
-
-
-  
-;;(tri 20 30)
-(display "NEWNEW\n")
-;;(newnew 20 30)
-(displayln (measure-time tri 100 30))  ; prints the time in milliseconds to compute
-(displayln (measure-time newnew 100 30))
+(displayer 12 1)

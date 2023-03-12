@@ -1,0 +1,190 @@
+#lang racket/base
+
+(define (filter predicate sequence) 
+   (cond ((null? sequence) '()) 
+         ((predicate (car sequence)) 
+          (cons (car sequence)  
+                (filter predicate (cdr sequence)))) 
+         (else (filter predicate (cdr sequence))))) 
+
+(define (accumulate op initial sequence)
+
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (enumerate-interval low high) 
+   (if (> low high) 
+       '()
+       (cons low (enumerate-interval (+ low 1) high)))) 
+
+(define (flatmap proc seq)
+  (accumulate append '() (map proc seq)))
+
+;;////////////////////////
+
+(define (f n item x place k)
+
+  (cond ((> k n) '())
+        ((= k x) (cons place (f n item x place (+ k 1))))
+        (else (cons item (f n item x place (+ k 1)))))
+)
+
+
+(define (board a b)
+  
+  (cond ((= b 0) '())
+        (else (cons (f a 0 1 0 1) (board a (- b 1)))))
+)
+
+(define (locate n m x i)
+
+  (cond
+        ((= i x) (car m))
+        (else (locate n (cdr m) x (+ i 1))))
+)
+
+(define (compare-list a b)
+
+  (newline)
+  (display a)
+  (newline)
+  (display b)
+
+  (if (and (= (car a) (car b)) (= (car (cdr a)) (car (cdr b)) )) #t #f)
+  )
+
+(define (queens board-size)
+
+  (define empty-board '())
+  
+  (define (adjoin-position x k current)
+    
+  (append current (list (f board-size 0 x 1 1)))
+
+)
+
+
+
+(define (safe? k current)
+
+  (define (find-x l n item i)
+
+    (if (= (car l) item) i (find-x (cdr l) n item (+ i 1)))
+  )
+  
+  ;;get coords except last row, which we are to check.
+  (define (get-coordinates board k)
+
+
+    (map (lambda (col) (append (list (find-x (locate k board col 1) k 1 1)) (list col))) (enumerate-interval 1 k))
+
+  )
+
+  (define forbidden (get-coordinates current (- k 1)))
+
+  (define checking (locate k current k 1))
+
+  (define coords-checking (list (find-x checking k 1 1) k))
+
+  (define (valid-x l x k i)
+
+
+    (cond ((null? l) #t)
+          ((> i k) #t)
+          ((= x (car (car l))) #f)
+           (else (valid-x (cdr l) x k (+ i 1)))
+    )
+
+  )
+    
+
+(define (valid-diag l coords k i)
+
+  (define (iter x y a b k j)
+
+ 
+    (cond ((> j k) #t)
+          ((and (= a (+ x j)) (= b (+ y j))) #f)
+          ((and (= a (- x j)) (= b (+ y j))) #f)
+          (else (iter x y a b k (+ j 1)))
+    )
+
+  )
+
+  (cond ((null? l) #t)
+        ((not (iter (car (car l)) (car (cdr (car l))) (car coords) (car (cdr coords)) k 1)) #f)
+        (else (valid-diag (cdr l) coords k (+ i 1)))
+
+  )
+
+
+)
+
+  ;;(display (car (cdr coords-checking)))
+  ;;LAST CHECK
+  
+  (define t1 (valid-x forbidden (car coords-checking) k 1))
+  (define t2 (valid-diag forbidden coords-checking k 1))
+
+  (display "NEW\n")
+  (display t1)
+  (newline)
+  (display t2)
+  (newline)
+  (display k)
+  (newline)
+  (if (and t1 t2) (display "############BINGO!" ) (display "---BAD"))
+  (newline)
+
+  (cond ((not (valid-x forbidden (car coords-checking) k 1)) #f)
+        ((not (valid-diag forbidden coords-checking k 1)) #f)
+        (else #t)
+
+        )
+  
+)
+
+
+  (define (queen-cols k)
+    
+    (if (= k 0) (list empty-board)
+        
+        (filter (lambda (positions) (safe? k positions))
+                
+                (flatmap
+                 (lambda (rest-of-queens)
+                   (map (lambda (new-row)
+                          ;;adds new pos and returns possibilities
+                          (adjoin-position new-row k rest-of-queens))
+                        (enumerate-interval 1 board-size)))
+
+                 (queen-cols (- k 1)))
+        )
+    )
+
+  )
+  (queen-cols board-size)
+
+
+  
+  )
+
+(define given (list (list 0 0 0 0 0 1 0 0)
+                    (list 0 0 1 0 0 0 0 0)
+                    (list 1 0 0 0 0 0 0 0)
+                    (list 0 0 0 0 0 0 1 0)
+                    (list 0 0 0 0 1 0 0 0)
+                    (list 0 0 0 0 0 0 0 1)
+                    (list 0 1 0 0 0 0 0 0)
+                    (list 0 0 0 1 0 0 0 0)))
+
+
+(define (measure-time f x)
+  ;;(displayln (measure-time f x))
+  (let ([start (current-milliseconds)])
+    (f x)
+    (- (current-milliseconds) start)))
+
+(displayln (measure-time queens 8))
