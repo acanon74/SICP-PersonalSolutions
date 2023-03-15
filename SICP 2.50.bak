@@ -1,0 +1,12 @@
+#lang sicp
+(#%require sicp-pict)
+(define e (flip-horiz einstein))
+(paint e)
+
+
+(define (new-flip-horiz painter)
+
+  (transform-painter painter (make-vect 1 0) (make-vect 0 0) (make-vect 1 1))
+  )
+
+(paint (newnew e))
