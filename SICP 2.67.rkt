@@ -214,3 +214,8 @@
 
 ; Most frequent: 1 bit. That is at most 1 bit for the  symbol with weight 2^n-1
 ; Least frequent: n-1 bits. That is at least n-1 for first 2 symbols with weight 2^1 and 2^2
+
+;/////////Ex 2.72///////////////////
+
+;Best O(1)
+;Worst O(n)
