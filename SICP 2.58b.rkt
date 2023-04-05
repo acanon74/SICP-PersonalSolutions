@@ -68,7 +68,7 @@
                         (multiplicand exp))))
         ((exponentiation? exp)
          (make-product (make-product (exponent exp) (make-exponentiation (base exp) (make-sum (exponent exp) '-1))) (deriv (base exp) 'x)))
-  (else (error "Unknown shit type -- DERIV" exp))))
+  (else (error "Unknown shit happened type -- DERIV" exp))))
 
 
 (define (exponentiation? x)
@@ -111,5 +111,3 @@
 (deriv '(x * y + 1 + x ** 2 * 3 + 4) 'x) ;; (+ y (* (* 2 x) 3))
 (deriv '(x * y + 1 + x * x * 3 + 4) 'x)
 ;;'(+ (+ (* x y) 1) (+ (* (** x 2) 3) 4))
-
-(deriv '(x * y) 'x)
