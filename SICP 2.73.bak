@@ -1,0 +1,15 @@
+#lang sicp
+
+
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        (else ((get 'deriv (operator exp)) (operands exp)
+                                           var))))
+
+(define (operator exp) (car exp))
+
+(define (operands exp) (cdr exp))
+
+;a: We expect numbers and single variables not to have a tag, in this representation a tag
+;is a arithmetic operation, so since no tag, no way to make it work with the look-up table. Also, it is inefficient as shit/
