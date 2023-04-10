@@ -1,0 +1,15 @@
+#lang sicp
+
+
+
+(define (equ? n m)
+
+
+  ;Now, eq? only checks same-type elements, therefore, we should implement eq?
+  ;per type in their respective install file.
+  ;And install this into the arithmetic package.
+  
+  (if (= (tag n) (tag m)) (eq? n m) #f)
+  )
+
+
