@@ -41,6 +41,24 @@
        (lambda (x) (tag x)))
   'done)
 
+(define (install-real-package)
+
+  (define (tag x)
+    ;attach-tag
+    (attach-tag 'real x))
+  
+  (put 'add '(real real)
+       (lambda (x y) (tag (+ x y))))
+  (put 'sub '(real real)
+       (lambda (x y) (tag (- x y))))
+  (put 'mul '(real real)
+       (lambda (x y) (tag (* x y))))
+  (put 'div '(real real)
+       (lambda (x y) (tag (/ x y))))
+  (put 'make 'real
+       (lambda (x) (tag x)))
+  'done)
+
 (define (install-rational-package)
 ;; internal procedures
   (define (numer x) (car x))
@@ -185,6 +203,7 @@
 (install-rectangular-package)
 (install-polar-package)
 (install-complex-package)
+(install-real-package)
 
 (define (square x) (* x x))
 
@@ -199,10 +218,8 @@
 
 
 
-
 (define (make-scheme-number n)
   ((get 'make 'scheme-number) n))
-
 
 (define (make-rational n d)
 ((get 'make 'rational) n d) )
@@ -225,6 +242,7 @@
   (hash-set! *coercion-table* (list coercion type) proc))
 
 (define (get-coercion coercion type)
+
   (hash-ref *coercion-table* (list coercion type) #f))
 
 (define (scheme-number->complex n)
@@ -232,7 +250,6 @@
 
 (define (scheme-number->rational n)
 (make-rational (contents n) 1))
-
 
 (define (rational->real n)
 
@@ -305,19 +322,20 @@
   (define (convert args)
     
 
-    (define (iter l t)
+    (define (iter l t i)
 
-      (display "<-")
-      (display l)
-      (display "->")
-      (newline)
-
-      (if (null? l) '() (let ((from (type-tag (car l)))
+      ;(display "<-")
+      ;(display l)
+      ;(display "->")
+      ;(newline)
+      
+      (if (null? l) i (let ((from (type-tag (car l)))
                               (to (type-tag t))
                               )
                           (let ((coer (get-coercion from to)))
-                            (cond ((null? l) '())
-                                  (coer (cons (coer (car l)) (iter (cdr l) t)))
+                            (cond
+                                  (coer (iter (cdr l) t (append (list (coer (car l))) i)))
+                                  ;(coer (cons (coer (car l)) (iter (cdr l) t)) )
                                   (else #f)
                             )
                             
@@ -336,12 +354,16 @@
       (display "+--")
       (display items)
       (display "--+")
-      (newline)
-      (if (null? items) #f (let ((result (iter items (car items))))
+      ;(newline)
+      (if (not (iter items (car items) '())) (display "FNHJKDA") void)
 
-                             (cond (
-                                    (pair? result) result)
+      
+      (if (null? items) #f (let ((result (iter items (car items) '())))
+
+                             (cond ((pair? result) result)
                                    ((not result) (through-l (cdr items)))
+                                   
+                                   
                              )
 
                            )
@@ -350,16 +372,65 @@
       ;(define r (iter items (car items)))
       
     )
+
     
+    
+    (display (through-l args))
     (through-l args)
   )
   
-  (convert args)
-)
+  (define re (convert args))
+  ;(display re)
+
+  (if (not re) #f void)
+  
+  (define t-re (type-tag (car re)))
+  ;(display t-re)
+
+  (define (opiter i q op t)
+    ;(display (get op t))
+
+    (if (null? q) i (opiter ((get op t) (contents i) (contents (car q))) (cdr q) op t))
+    
+    )
+
+
+  (if (or (eq? op 'mul) (eq? op 'div))
+      (opiter (car re) (cdr re) op (list t-re t-re))
+      (opiter (car re) (cdr re) op (list t-re t-re)))
+  
+  )
+
+
 
 (define z (make-scheme-number 1))
-(define x (make-rational 2 1))
+(define x (make-scheme-number 2))
 (define c (make-scheme-number 3))
+(define v (raise 'scheme-number 'rational z))
+(define b (make-complex-from-real-imag 6 3))
 
+
+(apply-generic3 'add z x c)
 (apply-generic3 'mul z x c)
 
+(apply-generic3 'add v x c)
+(apply-generic3 'mul v x c)
+
+(apply-generic3 'add b x c)
+(apply-generic3 'mul b x c)
+
+#|
+
+Look, 2.82 works as intented, sortof. It does indeed the coercion of all items into the value of one
+and if it manages to do it, it operates and returns the correct answer. Problem is that I cant figure
+out how to make it return a #f value to the main stack in case in which i cannot find a valid coercion
+For example, It has successfully coerced scheme-number to rational and then to complex, but if I pass
+a scheme-number and a complex one, it will not be able to convert them directly (since this implementation
+does not include the raise functionality, which would allow it to try to climb the coercion ladder from
+scheme-number to complex, which will then allow it to operate successfully) the code itself will give an error,
+because it could not find a get-coer. However, we want the program to finish in a non-destructive way, so we would like
+to return a #f value. 
+
+2.83 has been implemented above.
+
+|#
