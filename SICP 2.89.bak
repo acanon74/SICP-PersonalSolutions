@@ -1,0 +1,13 @@
+#lang racket
+
+
+(require "arithmetic.rkt")
+#|
+
+(define (adjoin-term term term-list)
+    (if (=zero? (coeff term))
+        term-list
+        (cons term term-list)))
+
+
+|#

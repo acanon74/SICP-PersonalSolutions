@@ -1,0 +1,30 @@
+#lang racket
+;(require "symbolic_algebra.rkt")
+
+;dummy put
+(define (put op type proc)
+  (+ 1 1)
+  )
+
+#|
+(define (install-scheme-number-package)
+  (define (negative x) (* -1 x))
+  (put 'negative '(scheme-number) (lambda (x) (tag (negative x))))
+  )
+
+
+
+(define (install-rational-package)
+
+  (define (negative x) (make-rational (* -1 (numer x)) (denom x)))
+  (put 'negative '(rational) (lambda (x) (tag (negative x))))
+  )
+
+(define (install-complex-package)
+  (define (real-part x) (car x))
+  (define (imag-part x) (cadr x))
+  (define (negative x) (make-complex (* -1 (real-part x)) (* -1 (imag-part x))))
+  (put 'negative '(complex) (lambda (x) (tag (negative x))))
+  )
+
+|#
