@@ -1,0 +1,33 @@
+#lang racket
+
+#|
+
+(define (average a b c)
+
+  (define (process-new-value)
+    (cond ((and (has-value? a) (has-value? b))
+           (set-value! c
+                       (/ (+ a b) 2)))
+          ((and (has-value? a) (has-value? c))
+           (set-value! b (- (* 2 c) a)))
+          ((and (has-value? b) (has-value? c))
+           (set-value! a (- (* 2 c) b))))
+    me)
+  (define (process-forget-value)
+    (forget-value! c m)
+    (forget-value! a m)
+    (forget-value! b m)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else
+           (error "Unknown request -- AVERAGE" request))))
+  (connect a me)
+  (connect b me)
+  (connect c me)
+  me)
+
+|#

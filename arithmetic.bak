@@ -8,8 +8,7 @@
 
 ;; methods for attaching and resolving tags on data
 
-;(define op-table (make-hash))
-
+(require "common.rkt")
 
 (define (attach-tag type-tag contents)
   (if (number? contents)
@@ -305,3 +304,5 @@
           (apply proc (map content args))
           (drop (apply proc (map content args))))
         (apply-raised args)))))
+
+(provide (all-defined-out))

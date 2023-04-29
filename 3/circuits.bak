@@ -1,0 +1,37 @@
+#lang racket
+
+
+
+(define (make-wire)
+
+  (let ((state 0)
+        (actions (list '())))
+
+    (define (get-signal)
+      state)
+    (define (set-signal! value)
+      (set! state value))
+
+    (define (add-action! proc)
+
+      (set! actions (cons proc actions))
+      
+      )
+    (define (dispatch m)
+
+      (cond ((eq? m 'get-signal) get-signal)
+            ((eq? m 'set-signal!) set-signal!)
+            ((eq? m 'add-action!) add-action!)
+            (else (error "Invalid procedure -- WIRE" m)))
+      )
+    dispatch
+    )
+  )
+
+(define a (make-wire))
+
+(display a)
+
+
+(a 'get-signal)
+((a 'set-signal!) 1)

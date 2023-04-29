@@ -1,0 +1,16 @@
+#lang racket
+;; My guess is that it will report now only the first item
+;which was once the end of the list.
+;this is because the last-pair, will return the last pair,
+;including its car and cdr values, (which is a value and
+;the nil character), and doesnt remove or add a proper
+;nil property.
+
+;Therefore once we move the last value, we take make
+; the nil character the cdr of the whole list.
+;at which point it ends. We lost access to the
+;the whole list but the last (now first) item.
+
+
+(define (append! x y)
+  (set-cdr! (last-pair x) y) x)
