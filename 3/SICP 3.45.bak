@@ -1,0 +1,11 @@
+#lang racket
+#|
+
+In this approach if we had two sequencial calls to exchange-serialized
+we would put the exchange procedure in a serializer, and
+inside it another serializer for the withdraw and deposit procecures.
+Therefore withdraw and deposit calls from both calls of exchange
+would be able to run concurrently, even though the exchange procedures
+are actually running sequencially in their own serializer.
+
+|#

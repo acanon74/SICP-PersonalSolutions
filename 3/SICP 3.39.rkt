@@ -1,0 +1,38 @@
+
+#lang racket
+
+(define x 10)
+
+(define s (make-serializer))
+
+(parallel-execute (lambda () (set! x ((s (lambda () (* x x))))))
+                  (s (lambda () (set! x (+ x 1)))))
+
+#|
+
+Let the instructions be named as:
+
+
+a (lambda () (* x x))
+b set! x [In the first procedure along a]
+c (+ x 1) [In the second procedure]
+d set! x [In the second procedure along c]
+
+Notice that in the first procedure, the set! expression is not
+serialized, only the evaluation * x x.
+
+Then we can have the following executions:
+
+Where the order of the letters indicates the order of the procedure
+and a "X" by the number indicates that the procedures executes a
+set! instruction, updating the value in memory of the variable X.
+
+
+abcd - 100 - x100 - 101 - x101: 101
+cdab - 11 - x11 - 121 - x121 : 121
+acdb - 100 - 11 - x11 - x100 : 100
+acbd - 100 -11 - x100 - x11 : 11
+
+Possible outcomes are 101, 121, 100, 11.
+|#
+
