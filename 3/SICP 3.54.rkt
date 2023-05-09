@@ -80,4 +80,4 @@
 
 (define factorials (cons-stream 1 (mul-streams integers factorials)))
 
-(display-line (stream-cdr integers))
+(display-line (stream-cdr (stream-cdr (stream-cdr factorials))))
