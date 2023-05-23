@@ -1,17 +1,5 @@
 #lang sicp
 
-(define (let-vari exp)
-  (cdr exp))
-
-(define (let-varu exp)
-  (cddr exp))
-
-(define (let-body exp)
- (cdddr exp))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
-
 
 (define (eval exp env)
   
@@ -27,37 +15,114 @@
          (make-procedure (lambda-parameters exp)
                          (lambda-body exp)
                          env) )
-        ((let? exp) (let->combination (let-vari exp) (let-varu exp) (let-body exp)))
+        ((let? exp) (eval (let->combination (let-list-pairs exp) (let-body exp)) env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
         ((cond? exp) (eval (cond->if exp) env))
         ((application? exp)
-         (apply2 (eval (operator exp) env)
-                (list-of-values (operands exp) env)))
+         (apply2 (actual-value (operator exp) env)
+                 (operands exp)
+                 env))
         (else
          (error "Unknown expression type -- EVAL" exp))))
 
+(define (actual-value exp env)
+  (force-it (eval exp env)))
 
-(define (apply2 procedure arguments)
+(define (apply2 procedure arguments env)
 
   (cond ((primitive-procedure? procedure)
-         (apply-primitive-procedure procedure arguments) )
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values arguments env)))
         ((compound-procedure? procedure)
          (eval-sequence
           (procedure-body procedure)
           (extend-environment
            (procedure-parameters procedure)
-           arguments
+           (list-of-delayed-args arguments env)
            (procedure-environment procedure) ) ) )
         (else
          (error
           "Unknown procedure type -- APPLY2" procedure) ) ) )
 
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value (first-operand exps) env)
+            (list-of-arg-values (rest-operands exps)
+                                env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it (first-operand exps) env)
+            (list-of-delayed-args (rest-operands exps)
+                                  env))))
+
+
+(define (delay-it exp env)
+  (list 'thunk exp env))
+
+(define (thunk? obj)
+  (tagged-list? obj 'thunk))
+
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk) (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result (actual-value
+                        (thunk-exp obj)
+                        (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           (set-car! (cdr obj) result)
+           (set-cdr! (cdr obj) '())
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
 
 (define (true? x)
 (not (eq? x false) ) )
 (define (false? x)
 (eq? x false))
+
+
+#|
+(let ((x 3) (c 4)) ((* c x)))
+|#
+
+;///////////////////
+
+(define (let->combination list-variables body)
+
+
+  (define variables (map (lambda (x) (car x)) list-variables))
+  (define values (map (lambda (x) (cadr x)) list-variables))
+  
+  (cons (make-lambda variables body) values)
+  )
+
+
+(define (let-list-pairs exp)
+  (cadr exp))
+
+(define (let-body exp)
+ (caddr exp))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+
+
+
+;////////////////
 
 (define (list-of-values exps env)
   (if (no-operands? exps)
@@ -66,7 +131,7 @@
             (list-of-values (rest-operands exps) env) ) ) )
 
 (define (eval-if exp env)
-  (if (true? (eval (if-predicate exp) env) )
+  (if (true? (actual-value (if-predicate exp) env) )
       (eval (if-consequent exp) env)
       (eval (if-alternative exp) env) ) )
 
@@ -135,13 +200,6 @@
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
 
-
-;///////////////////
-
-(define (let->combination vari valu body)
-
-  (eval (cons (make-lambda vari body) valu))
-  )
 
 
 
@@ -356,7 +414,9 @@
 (define (primitive-implementation proc) (cadr proc) )
 
 (define primitive-procedures
-(list (list '+ +)
+  (list
+      (list '+ +)
+      (list '= =)
       (list '- -)
       (list '* *)
       (list '/ /)
@@ -364,6 +424,9 @@
       (list 'cdr cdr)
       (list 'cons cons)
       (list 'null? null?)
+      (list '#f #f)
+      (list '#t #t)
+      (list 'display display)
       ))
 
 
@@ -373,9 +436,6 @@
 (define (primitive-procedure-objects)
 (map (lambda (proc) (list 'primitive (cadr proc)))
      primitive-procedures))
-
-;////////////////////////////////
-;\\\\\\\\\\\\\\\\\\\\\\\\
 
 (define apply-in-underlying-scheme apply)
 
@@ -394,12 +454,12 @@
 (define the-global-environment (setup-environment))
 
 
-(define input-prompt ";;; M-Eval input : " )
-(define output-prompt ";;; M-Eval value : " )
+(define input-prompt ";;; L-Eval input : " )
+(define output-prompt ";;; L-Eval value : " )
 (define (driver-loop)
   (prompt-for-input input-prompt)
   (let  ((input (read)))
-    (let ((output (eval input the-global-environment) ) )
+    (let ((output (actual-value input the-global-environment) ) )
       (announce-output output-prompt)
       (user-print output)))
 (driver-loop))
@@ -418,6 +478,39 @@
                      '<procedure-env>))
 (display object)))
 
+
+;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
+
 (driver-loop)
 
-;user-initial-environment
+
+
+(define (generate comp)
+
+  (lambda (x) (= x comp))
+  )
+
+(define (filter2 predicate l)
+  (display predicate)
+  (cond ((null? l) 'no)
+        ((predicate (car l)) 'yes)
+        (else (filter2 predicate (cdr l))))
+  )
+
+(define w (generate 4))
+(filter2 w '(1 2 3 4 5))
+
+
+#|
+The above implementation is mine, here is an implementation from the wiki
+
+ for example: 
+ (define (g x) (+ x 1)) 
+ (define (f g x) (g x)) 
+  
+ when call (f g 10), if don't use actual-value which will call force-it, g will be passed as parameter which will be delayed, then g is a thunk, can't be used as function to call 10. 
+poly
+
+Let me make meteorgan's answer more specific. 'g' will be passed as a parameter which will be delayed literally. It means 'g' is a thunk and (g 10) will be considered as application in the 'eval'. In the procedure apply, the 'g' will be seen as a procedure, with a tag 'thunk', which is not a primitive procedure and compound procedure. So the procedure apply will report an error.
+
+|#

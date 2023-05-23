@@ -1,21 +1,9 @@
 #lang sicp
 
-(define (let-vari exp)
-  (cdr exp))
-
-(define (let-varu exp)
-  (cddr exp))
-
-(define (let-body exp)
- (cdddr exp))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
-
-
 (define (eval exp env)
   
   (cond ((self-evaluating? exp) exp)
+        ((tagged-list? exp 'letr) (let->combination (cadr exp) (caddr exp) env))
         ((variable? exp) (lookup-variable-value exp env))
         ((quoted? exp) (text-of-quotation exp))
         ((assignment? exp) (eval-assignment exp env))
@@ -27,13 +15,14 @@
          (make-procedure (lambda-parameters exp)
                          (lambda-body exp)
                          env) )
-        ((let? exp) (let->combination (let-vari exp) (let-varu exp) (let-body exp)))
+        ((let? exp) (eval (let->combination (let-list-pairs exp) (let-body exp)) env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
         ((cond? exp) (eval (cond->if exp) env))
         ((application? exp)
          (apply2 (eval (operator exp) env)
                 (list-of-values (operands exp) env)))
+        
         (else
          (error "Unknown expression type -- EVAL" exp))))
 
@@ -54,10 +43,33 @@
           "Unknown procedure type -- APPLY2" procedure) ) ) )
 
 
+
+(define (let->combination list-variables body)
+
+
+  (define variables (map (lambda (x) (car x)) list-variables))
+  (define values (map (lambda (x) (cadr x)) list-variables))
+  
+  (cons (make-lambda variables body) values)
+  )
+
+
+(define (let-list-pairs exp)
+  (cadr exp))
+
+(define (let-body exp)
+ (caddr exp))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+
+
 (define (true? x)
 (not (eq? x false) ) )
 (define (false? x)
 (eq? x false))
+
 
 (define (list-of-values exps env)
   (if (no-operands? exps)
@@ -135,13 +147,6 @@
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
 
-
-;///////////////////
-
-(define (let->combination vari valu body)
-
-  (eval (cons (make-lambda vari body) valu))
-  )
 
 
 
@@ -288,6 +293,7 @@
     (define (scan vars vals)
       (cond ((null? vars)
              (env-loop (enclosing-environment env) ) )
+            ((eq? var '*unassigned*))
             ((eq? var (car vars))
              (car vals))
             (else (scan (cdr vars) (cdr vals)))))
@@ -364,6 +370,7 @@
       (list 'cdr cdr)
       (list 'cons cons)
       (list 'null? null?)
+      (list 'display display)
       ))
 
 
@@ -373,9 +380,6 @@
 (define (primitive-procedure-objects)
 (map (lambda (proc) (list 'primitive (cadr proc)))
      primitive-procedures))
-
-;////////////////////////////////
-;\\\\\\\\\\\\\\\\\\\\\\\\
 
 (define apply-in-underlying-scheme apply)
 
@@ -418,6 +422,67 @@
                      '<procedure-env>))
 (display object)))
 
-(driver-loop)
 
-;user-initial-environment
+;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
+
+
+;///////////////////////////
+;////////////////////////// scan-out-defines
+
+
+
+
+(define (make-letr exp env)
+
+  (define proc (lambda-body exp))
+
+  (define (scan-out-defines exps found-var found-val else)
+    (cond ((null? exps) (list found-var found-val else))
+          ((definition? (first-exp exps)) (scan-out-defines (rest-exps exps)
+                                                       (append found-var (cons (definition-variable (first-exp exps)) '()))
+                                                       (append found-val (cons (definition-value (first-exp exps)) '())) else))
+        
+          (else (scan-out-defines (rest-exps exps) found-var found-val (append else (cons (first-exp exps) '()))))))
+
+
+  (define (create-sequence-definition variables)
+    (define (bucle variables)
+      (if (null? variables) '()
+          (cons (list (car variables) '*unassigned*) (bucle (cdr variables)))))
+  (bucle variables)
+  )
+
+  (define (create-sequence-set variables values)
+    (define (bucle variables values)
+      (if (null? variables) '()
+          (cons (list 'set! (car variables) (car values)) (bucle (cdr variables) (cdr values)))))
+    (bucle variables values))
+
+  
+  (define parsed (scan-out-defines (rest-exps proc) '() '() '()))
+  (define definition-exprs (create-sequence-definition (car parsed)))
+  (define sets-exprs (create-sequence-set (car parsed) (cadr parsed)))
+  (define body-result (append sets-exprs (caddr parsed)))
+
+  ;(define letcom (list 'let definition-exprs body-result))
+
+  (let->combination definition-exprs body-result env)
+
+
+)
+  
+
+;(define t '(begin (define u 3) (define v 2) (display (* 3 2)) (* v u) (/ v u)))
+
+
+;//////////////////////////// def variable value
+;////////////////(eval ((make-lambda variables body) values) env)
+
+
+(driver-loop) 
+
+
+
+
+
+;the-global-environment

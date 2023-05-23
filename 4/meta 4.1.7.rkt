@@ -1,41 +1,105 @@
 #lang sicp
 
-(define (let-vari exp)
-  (cdr exp))
-
-(define (let-varu exp)
-  (cddr exp))
-
-(define (let-body exp)
- (cdddr exp))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
-
-
 (define (eval exp env)
-  
-  (cond ((self-evaluating? exp) exp)
-        ((variable? exp) (lookup-variable-value exp env))
-        ((quoted? exp) (text-of-quotation exp))
-        ((assignment? exp) (eval-assignment exp env))
-        ((definition? exp) (eval-definition exp env))
-        ((and? exp) (eval-and exp))
-        ((or? exp) (eval-or exp))
-        ((if? exp) (eval-if exp env))
-        ((lambda? exp)
-         (make-procedure (lambda-parameters exp)
-                         (lambda-body exp)
-                         env) )
-        ((let? exp) (let->combination (let-vari exp) (let-varu exp) (let-body exp)))
-        ((begin? exp)
-         (eval-sequence (begin-actions exp) env))
-        ((cond? exp) (eval (cond->if exp) env))
-        ((application? exp)
-         (apply2 (eval (operator exp) env)
-                (list-of-values (operands exp) env)))
+  ((analyze exp) env))
+
+(define (analyze exp)
+  (cond ( (self-evaluating? exp)
+          (analyze-self-evaluating exp) )
+        ( (quoted? exp) (analyze-quoted exp) )
+        ( (variable? exp) (analyze-variable exp) )
+        ( (assignment? exp) (analyze-assignment exp) )
+        ( (definition? exp) (analyze-definition exp) )( (if? exp) (analyze-if exp) )
+        ( (let? exp) (analyze (analyze-let exp)))
+        ( (lambda? exp) (analyze-lambda exp) )
+        ( (begin? exp) (analyze-sequence (begin-actions exp) ) )
+        ( (cond? exp) (analyze ( cond->if exp) ) )
+        ( (application? exp) (analyze-application exp) )
         (else
-         (error "Unknown expression type -- EVAL" exp))))
+         (error "Unknown expression type -- ANALYZE" exp) ) ) )
+
+
+(define (analize-self-evaluating exp)
+  (lambda (env) exp))
+
+(define (analyze-self-evaluating exp)
+  (lambda (env) exp))
+
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+  (lambda (env) qval)))
+
+
+(define (analyze-variable exp)
+  (lambda (env) (lookup-variable-value exp env)))
+
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp) )
+
+        (vproc (analyze (assignment-value exp) ) ) )
+(lambda (env)
+(set-variable-value! var (vproc env) env)
+' ok) ) )
+
+
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp) )
+        (vproc (analyze (definition-value exp) ) ) )
+(lambda (env)
+(define-variable! var (vproc env) env)
+' ok)))
+
+
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env)
+      (if (true? (pproc env))
+          (cproc env)
+          (aproc env)))))
+
+
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence (lambda-body exp))))
+    (lambda (env) (make-procedure vars bproc env))))
+
+(define (analyze-sequence exps)
+  (define (sequentially proc1 proc2)
+    (lambda (env) (proc1 env) (proc2 env)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence -- ANALYZE"))
+    (loop (car procs) (cdr procs))))
+
+
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env)
+      (execute-application (fproc env)
+                           (map (lambda (aproc) (aproc env))
+                                aprocs)))))
+
+
+(define (execute-application proc args)
+  (cond ((primitive-procedure? proc)
+         (apply-primitive-procedure proc args))
+        ((compound-procedure? proc)
+         ((procedure-body proc)
+          (extend-environment (procedure-parameters proc)
+                              args
+                              (procedure-environment proc))))
+        (else
+         (error
+          "Unknown procedure type -- EXECUTE-APPLICATION"
+          proc))))
 
 
 (define (apply2 procedure arguments)
@@ -58,6 +122,73 @@
 (not (eq? x false) ) )
 (define (false? x)
 (eq? x false))
+
+
+#|
+(let ((x 3) (c 4)) ((* c x)))
+|#
+
+
+(define (let-list-pairs exp)
+  (cadr exp))
+
+(define (let-body exp)
+ (cddr exp))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+
+;///////////////////
+
+(define (let->combination list-variables body)
+
+
+  (define variables (map (lambda (x) (car x)) list-variables))
+  (define values (map (lambda (x) (cadr x)) list-variables))
+  
+  (cons (make-lambda variables body) values)
+  )
+
+#|
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence (lambda-body exp))))
+    (lambda (env) (make-procedure vars bproc env))))
+
+(let ((x 2) (e 4)) (+ x e))
+
+(define a 5)
+(define b 3)
+
+(define c (* a b))
+
+(let ((x (lambda () (+ 10 10))) (y (lambda () 7))) (+ (x) (y) c))
+|#
+
+;////////////////
+
+
+(define (analyze-let exp)
+  (let ((body (let-body exp))
+        (variables (map (lambda (x) (car x)) (let-list-pairs exp)))
+        (values (map (lambda (x) (cadr x)) (let-list-pairs exp))))
+    (display variables)
+    (newline)
+    (display values)
+    (newline)
+    (display body)
+    (newline)
+    (display (cons (make-lambda variables body) values))
+    (newline)
+  (cons (make-lambda variables body) values))
+  
+
+)
+
+
+
+;////////////////
 
 (define (list-of-values exps env)
   (if (no-operands? exps)
@@ -135,13 +266,6 @@
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
 
-
-;///////////////////
-
-(define (let->combination vari valu body)
-
-  (eval (cons (make-lambda vari body) valu))
-  )
 
 
 
@@ -349,8 +473,6 @@
   (scan (frame-variables exact-frame) (frame-values  exact-frame) '() '()))
 
 
-
-
 (define (primitive-procedure? proc)
 (tagged-list? proc 'primitive) )
 (define (primitive-implementation proc) (cadr proc) )
@@ -373,9 +495,6 @@
 (define (primitive-procedure-objects)
 (map (lambda (proc) (list 'primitive (cadr proc)))
      primitive-procedures))
-
-;////////////////////////////////
-;\\\\\\\\\\\\\\\\\\\\\\\\
 
 (define apply-in-underlying-scheme apply)
 
@@ -418,6 +537,11 @@
                      '<procedure-env>))
 (display object)))
 
+
+;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
+
 (driver-loop)
+
+
 
 ;user-initial-environment

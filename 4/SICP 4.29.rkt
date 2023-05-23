@@ -1,17 +1,5 @@
 #lang sicp
 
-(define (let-vari exp)
-  (cdr exp))
-
-(define (let-varu exp)
-  (cddr exp))
-
-(define (let-body exp)
- (cdddr exp))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
-
 
 (define (eval exp env)
   
@@ -27,37 +15,114 @@
          (make-procedure (lambda-parameters exp)
                          (lambda-body exp)
                          env) )
-        ((let? exp) (let->combination (let-vari exp) (let-varu exp) (let-body exp)))
+        ((let? exp) (eval (let->combination (let-list-pairs exp) (let-body exp)) env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
         ((cond? exp) (eval (cond->if exp) env))
         ((application? exp)
-         (apply2 (eval (operator exp) env)
-                (list-of-values (operands exp) env)))
+         (apply2 (actual-value (operator exp) env)
+                 (operands exp)
+                 env))
         (else
          (error "Unknown expression type -- EVAL" exp))))
 
+(define (actual-value exp env)
+  (force-it (eval exp env)))
 
-(define (apply2 procedure arguments)
+(define (apply2 procedure arguments env)
 
   (cond ((primitive-procedure? procedure)
-         (apply-primitive-procedure procedure arguments) )
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values arguments env)))
         ((compound-procedure? procedure)
          (eval-sequence
           (procedure-body procedure)
           (extend-environment
            (procedure-parameters procedure)
-           arguments
+           (list-of-delayed-args arguments env)
            (procedure-environment procedure) ) ) )
         (else
          (error
           "Unknown procedure type -- APPLY2" procedure) ) ) )
 
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value (first-operand exps) env)
+            (list-of-arg-values (rest-operands exps)
+                                env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it (first-operand exps) env)
+            (list-of-delayed-args (rest-operands exps)
+                                  env))))
+
+
+(define (delay-it exp env)
+  (list 'thunk exp env))
+
+(define (thunk? obj)
+  (tagged-list? obj 'thunk))
+
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk) (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result (actual-value
+                        (thunk-exp obj)
+                        (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           (set-car! (cdr obj) result)
+           (set-cdr! (cdr obj) '())
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
 
 (define (true? x)
 (not (eq? x false) ) )
 (define (false? x)
 (eq? x false))
+
+
+#|
+(let ((x 3) (c 4)) ((* c x)))
+|#
+
+;///////////////////
+
+(define (let->combination list-variables body)
+
+
+  (define variables (map (lambda (x) (car x)) list-variables))
+  (define values (map (lambda (x) (cadr x)) list-variables))
+  
+  (cons (make-lambda variables body) values)
+  )
+
+
+(define (let-list-pairs exp)
+  (cadr exp))
+
+(define (let-body exp)
+ (caddr exp))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+
+
+
+;////////////////
 
 (define (list-of-values exps env)
   (if (no-operands? exps)
@@ -66,7 +131,7 @@
             (list-of-values (rest-operands exps) env) ) ) )
 
 (define (eval-if exp env)
-  (if (true? (eval (if-predicate exp) env) )
+  (if (true? (actual-value (if-predicate exp) env) )
       (eval (if-consequent exp) env)
       (eval (if-alternative exp) env) ) )
 
@@ -79,13 +144,13 @@
   (set-variable-value! (assignment-variable exp)
                       (eval (assignment-value exp) env)
                       env)
-  'ok)
+  'ok1111)
 
 (define (eval-definition exp env)
   (define-variable! (definition-variable exp)
     (eval (definition-value exp) env)
     env)
-  'ok)
+  'ok4324)
 
 (define (self-evaluating? exp)
   (cond ((number? exp) true)
@@ -135,13 +200,6 @@
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
 
-
-;///////////////////
-
-(define (let->combination vari valu body)
-
-  (eval (cons (make-lambda vari body) valu))
-  )
 
 
 
@@ -356,7 +414,9 @@
 (define (primitive-implementation proc) (cadr proc) )
 
 (define primitive-procedures
-(list (list '+ +)
+  (list
+      (list '+ +)
+      (list '= =)
       (list '- -)
       (list '* *)
       (list '/ /)
@@ -373,9 +433,6 @@
 (define (primitive-procedure-objects)
 (map (lambda (proc) (list 'primitive (cadr proc)))
      primitive-procedures))
-
-;////////////////////////////////
-;\\\\\\\\\\\\\\\\\\\\\\\\
 
 (define apply-in-underlying-scheme apply)
 
@@ -394,12 +451,12 @@
 (define the-global-environment (setup-environment))
 
 
-(define input-prompt ";;; M-Eval input : " )
-(define output-prompt ";;; M-Eval value : " )
+(define input-prompt ";;; L-Eval input : " )
+(define output-prompt ";;; L-Eval value : " )
 (define (driver-loop)
   (prompt-for-input input-prompt)
   (let  ((input (read)))
-    (let ((output (eval input the-global-environment) ) )
+    (let ((output (actual-value input the-global-environment) ) )
       (announce-output output-prompt)
       (user-print output)))
 (driver-loop))
@@ -418,6 +475,122 @@
                      '<procedure-env>))
 (display object)))
 
-(driver-loop)
 
-;user-initial-environment
+;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
+
+(driver-loop)
+#|
+(define (try a b)
+(if (= a 0) 1 b))
+(try 0 (/ 1 0))
+|#
+
+
+
+
+
+(define (fibo a b n i)
+
+  (if (= i n)
+      (+ a b)
+      (fibo b (+ a b) n (+ i 1)))
+  )
+
+(fibo 1 1 4 0)
+
+
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* n (factorial (- n 1)))))
+
+(factorial 5)
+
+#|
+
+(define count 0)
+(define (id x) (set! count (+ count 1)) x)
+(define (square x) (* x x))
+
+Input:
+(square (id 10))
+(behind the curtains: count+1)
+Output:
+100
+Input:
+count
+Output:
+1
+|#
+
+#|
+Above is my implementation, below is the wiki's
+
+Here's a very simple, trivial example that illustrates the difference between memoizing and not memoizing thunks. First, assume that the force-it procedure has been defined with memoization, as in the longer of the two versions of force-it given in the book.
+
+We also define a non-memoized version, which is simply the shorter of the two versions of force-it given in the book:
+
+ (define (unmemoized-force-it obj) 
+   (if (thunk? obj) 
+       (actual-value (thunk-exp obj) (thunk-env obj)) 
+       obj)) 
+Here is our simple example, which can be run in MIT Scheme:
+
+ (eval '(define (identity x) x) the-global-environment) 
+  
+ (eval '(define (identity-with-computation x) 
+          (display " 1 hour elapsed ") 
+          x) 
+       the-global-environment) 
+  
+ (begin ;; with memoization 
+   (eval '(define z (identity (identity-with-computation 0))) 
+         the-global-environment) 
+   (actual-value 'z the-global-environment) 
+   (actual-value 'z the-global-environment)) 
+ ;; displays "1 hour elapsed" *once* 
+  
+ ;; fluid-let is an MIT Scheme special form for dynamic (as opposed to lexical for ordinary let) binds 
+  
+ (fluid-let ((force-it unmemoized-force-it)) ;; without memoization 
+   (eval '(define z (identity (identity-with-computation 0))) 
+         the-global-environment) 
+   (actual-value 'z the-global-environment) 
+   (actual-value 'z the-global-environment)) 
+ ;; displays "1 hour elapsed" *twice* 
+What's happening here is that the argument given to identity, the expression '(identity-with-computation 0), is stored in a thunk via delay-it. With memoization, that thunk is effectively forced only once, but without it, that thunk is forced every time we call actual-value on z.
+
+Note that memoization of thunks is similar, but *not exactly* the same thing as the memoization you may be used to in dynamic programming (the canonical example being the naive recursive algorithm for fibonacci, which is O(exp N) without dynamic programming (DP) memoization but O(N) *with* DP memoization.
+
+In DP memoization, a function f(x) is computed *once* for every x; further calls to f(x) for the same x will simply return the stored value. For the thunk memoization discussed in this section of SICP, memoization is done for each *thunk object*, regardless of whether the the arguments are the same.
+
+For example:
+
+ (begin ;; with thunk memoization 
+   (actual-value '(identity-with-computation 0) the-global-environment) 
+   (actual-value '(identity-with-computation 0) the-global-environment)) 
+ ;; displays "1 hour elapsed" *twice*, not once, even though both calls had the same argument 0. This is because both calls generated *separate* thunk objects. Thunk memoization does *not* help in this case! 
+The takeaway here is that thunk memoization does *not* tabulate previously computed results by *argument*, the way dynamic programming memoization does. Note that DP memoization was actually implemented earlier in the book (chapter 3 if I remember correctly).
+
+Hence, I would personally caution against using the O(exp N) naive recursive fibonacci algorithm for this exercise, since in that case, the multiple redundant calls of (fib n) to the same n are *not* sharing work, but are *still* redundantly doing work since they result in separate thunk objects. Even if thunk memoization *does* make a difference here, it is certainly not nearly as much as the jump from O(exp N) to O(N) that true dynamic programming memoization, which involves actually *tabulating computed results indexed by argument*.
+
+
+
+
+ME:
+
+Long story short, the guy is trying to say that
+memoization here does not work based on the arguments to be
+computed. But rather we do memoization per object.
+
+The easiest way to see this is that memoization here
+is done mutating the object state using set!. This could
+be seen as if we are storing the now computed value
+inside the object itself rather than builing a lookup
+table that is used in DP.
+Thus, even if we do eval to
+two procedures with the same arguments, the object are
+nonetheless NOT the same and therefore each will store
+its own memoization copy.
+
+|#

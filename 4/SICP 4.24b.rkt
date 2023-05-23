@@ -1,16 +1,5 @@
 #lang sicp
 
-(define (let-vari exp)
-  (cdr exp))
-
-(define (let-varu exp)
-  (cddr exp))
-
-(define (let-body exp)
- (cdddr exp))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
 
 
 (define (eval exp env)
@@ -27,7 +16,7 @@
          (make-procedure (lambda-parameters exp)
                          (lambda-body exp)
                          env) )
-        ((let? exp) (let->combination (let-vari exp) (let-varu exp) (let-body exp)))
+        ((let? exp) (eval (let->combination (let-list-pairs exp) (let-body exp)) env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
         ((cond? exp) (eval (cond->if exp) env))
@@ -58,6 +47,37 @@
 (not (eq? x false) ) )
 (define (false? x)
 (eq? x false))
+
+
+#|
+(let ((x 3) (c 4)) ((* c x)))
+|#
+
+;///////////////////
+
+(define (let->combination list-variables body)
+
+
+  (define variables (map (lambda (x) (car x)) list-variables))
+  (define values (map (lambda (x) (cadr x)) list-variables))
+  
+  (cons (make-lambda variables body) values)
+  )
+
+
+(define (let-list-pairs exp)
+  (cadr exp))
+
+(define (let-body exp)
+ (caddr exp))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+
+
+
+;////////////////
 
 (define (list-of-values exps env)
   (if (no-operands? exps)
@@ -135,13 +155,6 @@
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
 
-
-;///////////////////
-
-(define (let->combination vari valu body)
-
-  (eval (cons (make-lambda vari body) valu))
-  )
 
 
 
@@ -355,15 +368,18 @@
 (tagged-list? proc 'primitive) )
 (define (primitive-implementation proc) (cadr proc) )
 
+
 (define primitive-procedures
 (list (list '+ +)
       (list '- -)
+      (list '= =)
       (list '* *)
       (list '/ /)
       (list 'car car)
       (list 'cdr cdr)
       (list 'cons cons)
       (list 'null? null?)
+      (list 'display display)
       ))
 
 
@@ -373,9 +389,6 @@
 (define (primitive-procedure-objects)
 (map (lambda (proc) (list 'primitive (cadr proc)))
      primitive-procedures))
-
-;////////////////////////////////
-;\\\\\\\\\\\\\\\\\\\\\\\\
 
 (define apply-in-underlying-scheme apply)
 
@@ -418,6 +431,39 @@
                      '<procedure-env>))
 (display object)))
 
-(driver-loop)
 
-;user-initial-environment
+;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
+
+(define (measure-time proc)
+  (let ((start-time (runtime)))
+    (proc)
+    (- (runtime) start-time)))
+
+(define (factorial n)
+  (if (= n 1) 1
+  (* n (factorial (- n 1))))
+  
+)
+
+(define (n10)
+
+  (eval '(factorial 10) the-global-environment))
+(define (n100)
+
+  (eval '(factorial 100) the-global-environment))
+(define (n1000)
+
+  (eval '(factorial 1000) the-global-environment))
+
+(define (n10000)
+
+  (eval '(factorial 10000) the-global-environment))
+;eval
+
+(eval '(define (factorial n) (if (= n 1) 1 (* n (factorial (- n 1)))))
+      the-global-environment)
+
+(map (lambda (proc) (begin (display "Starting...\n")
+                     (display (measure-time proc))
+                     (display "\nFinished.\n"))) (list n10 n100 n1000 n10000))
+(driver-loop)

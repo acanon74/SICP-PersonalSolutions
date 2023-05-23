@@ -1,0 +1,13 @@
+#lang sicp
+#|
+
+I believe he is not correct.
+
+In the last require expression we are looking explicitely
+for an integer number... from a square root expression...
+We know that there are more decimal numbers than
+integer numbers in a given interval so we will have
+to check more number than if we transverse the
+whole integer interval with the former solution.
+
+|#
