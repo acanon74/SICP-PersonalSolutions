@@ -56,7 +56,7 @@
 (define (analyze-quoted exp)
   (let ((qval (text-of-quotation exp)))
     
-  (lambda (env succeed fail) (succeed qval fail))))
+    (lambda (env succeed fail) (succeed qval fail))))
 
 
 (define (analyze-variable exp)
@@ -66,30 +66,30 @@
 (define (analyze-assignment exp)
   (let ((var (assignment-variable exp))
         (vproc (analyze (assignment-value exp) ) ) )
-(lambda (env succeed fail)
-  (vproc env
-         (lambda (val fail2)
-           (let ((old-value
-                  (lookup-variable-value var env)))
-             (set-variable-value! var val env)
-             (succeed 'ok
-                      (lambda ()
-                        (set-variable-value! var
-                                             old-value
-                                             env)
-                        (fail2)))))
-         fail))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (let ((old-value
+                      (lookup-variable-value var env)))
+                 (set-variable-value! var val env)
+                 (succeed 'ok
+                          (lambda ()
+                            (set-variable-value! var
+                                                 old-value
+                                                 env)
+                            (fail2)))))
+             fail))))
 
 
 (define (analyze-definition exp)
   (let ((var (definition-variable exp) )
         (vproc (analyze (definition-value exp) ) ) )
-(lambda (env succeed fail)
-  (vproc env
-         (lambda (val fail2)
-           (define-variable! var val env)
-           (succeed 'ok fail2))
-         fail))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (define-variable! var val env)
+               (succeed 'ok fail2))
+             fail))))
 
 
 (define (analyze-if exp)
@@ -191,9 +191,9 @@
 
 
 (define (true? x)
-(not (eq? x false) ) )
+  (not (eq? x false) ) )
 (define (false? x)
-(eq? x false))
+  (eq? x false))
 
 
 #|
@@ -205,7 +205,7 @@
   (cadr exp))
 
 (define (let-body exp)
- (cddr exp))
+  (cddr exp))
 
 (define (let? exp)
   (tagged-list? exp 'let))
@@ -234,10 +234,10 @@
     (newline)
     (display (cons (make-lambda variables body) values))
     (newline)
-  (cons (make-lambda variables body) values))
+    (cons (make-lambda variables body) values))
   
 
-)
+  )
 
 
 (define (list-of-values exps env)
@@ -258,8 +258,8 @@
 
 (define (eval-assignment exp env)
   (set-variable-value! (assignment-variable exp)
-                      (ambeval (assignment-value exp) env)
-                      env)
+                       (ambeval (assignment-value exp) env)
+                       env)
   'ok)
 
 (define (eval-definition exp env)
@@ -390,9 +390,9 @@
 
 
 (define (make-procedure parameters body env)
-(list 'procedure parameters body env))
+  (list 'procedure parameters body env))
 (define (compound-procedure? p)
-(tagged-list? p 'procedure))
+  (tagged-list? p 'procedure))
 (define (procedure-parameters p) (cadr p))
 (define (procedure-body p) (caddr p))
 (define (procedure-environment p) (cadddr p))
@@ -403,12 +403,12 @@
 
 
 (define (make-frame variables values)
-(cons variables values))
+  (cons variables values))
 (define (frame-variables frame) (car frame) )
 (define (frame-values frame) (cdr frame) )
 (define (add-binding-to-frame! var val frame)
-(set-car! frame (cons var ( car frame) ) )
-(set-cdr! frame (cons val (cdr frame)) ) )
+  (set-car! frame (cons var ( car frame) ) )
+  (set-cdr! frame (cons val (cdr frame)) ) )
 
 (define (extend-environment vars vals base-env)
   (if (= (length vars) (length vals))
@@ -429,38 +429,38 @@
 
     (if (eq? env the-empty-environment)
         (error "Unbound variable " var)
-    (let ((frame (first-frame env)))
-      (scan (frame-variables frame)
-            (frame-values frame)))))
-(env-loop env))
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
 
 
 (define (set-variable-value! var val env)
   (define (env-loop env)
     (define (scan vars vals)
-(cond ((null? vars)
-       (env-loop (enclosing-environment env) ) )
-      ((eq? var (car vars) )
-(set-car! vals val))
-(else (scan (cdr vars) (cdr vals) ) ) ) )
+      (cond ((null? vars)
+             (env-loop (enclosing-environment env) ) )
+            ((eq? var (car vars) )
+             (set-car! vals val))
+            (else (scan (cdr vars) (cdr vals) ) ) ) )
     
-(if (eq? env the-empty-environment)
-(error "Unbound variable -- SET ! " var)
-(let ((frame (first-frame env)))
-  (scan (frame-variables frame)
-(frame-values frame) ) ) ) )
-(env-loop env))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable -- SET ! " var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame) ) ) ) )
+  (env-loop env))
 
 
 (define (define-variable! var val env)
-(let ((frame (first-frame env) ) )
-(define (scan vars vals)
-(cond ((null? vars)
-        (add-binding-to-frame! var val frame) )
-((eq? var (car vars)) (set-car! vals val))
-(else (scan (cdr vars) (cdr vals)))))
+  (let ((frame (first-frame env) ) )
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (add-binding-to-frame! var val frame) )
+            ((eq? var (car vars)) (set-car! vals val))
+            (else (scan (cdr vars) (cdr vals)))))
   
-(scan (frame-variables frame) (frame-values frame))))
+    (scan (frame-variables frame) (frame-values frame))))
 
 (define (filter predicate sequence)
   (cond ((null? sequence) nil)
@@ -475,44 +475,46 @@
 
   (define (scan vars vals start start2)
       
-      (cond ((null? vars) (error "No variable bounded" var))
-            ((eq? var (car vars)) (begin (set! vars (cons (reverse start) (cdr vars)))
-                                        (set! vals (cons (reverse start2) (cdr vals)))
-                                        'done))
-      (else (scan (cdr vars) (cons (car vars) start) (cons (car vals) start2)))))
+    (cond ((null? vars) (error "No variable bounded" var))
+          ((eq? var (car vars)) (begin (set! vars (cons (reverse start) (cdr vars)))
+                                       (set! vals (cons (reverse start2) (cdr vals)))
+                                       'done))
+          (else (scan (cdr vars) (cons (car vars) start) (cons (car vals) start2)))))
   
   (scan (frame-variables exact-frame) (frame-values  exact-frame) '() '()))
 
 
 (define (primitive-procedure? proc)
-(tagged-list? proc 'primitive) )
+  (tagged-list? proc 'primitive) )
 (define (primitive-implementation proc) (cadr proc) )
 
 (define primitive-procedures
-(list (list '+ +)
-      (list '- -)
-      (list '* *)
-      (list '/ /)
-      (list '< <)
-      (list '> >)
-      (list '<= <=)
-      (list '>= >=)
-      
-      (list 'not not)
-      (list 'list list)
-      (list 'car car)
-      (list 'cdr cdr)
-      (list 'cons cons)
-      (list 'null? null?)
-      ))
+  (list (list '+ +)
+        (list '- -)
+        (list '* *)
+        (list '/ /)
+        (list '< <)
+        (list '> >)
+        (list '<= <=)
+        (list '>= >=)
+        (list '= =)
+        (list 'member member)
+        (list 'not not)
+        (list 'list list)
+        (list 'car car)
+        (list 'cdr cdr)
+        (list 'cons cons)
+        (list 'null? null?)
+        (list 'abs abs)
+        ))
 
 
 (define (primitive-procedure-names)
   (map (lambda (x) (car x)) primitive-procedures))
 
 (define (primitive-procedure-objects)
-(map (lambda (proc) (list 'primitive (cadr proc)))
-     primitive-procedures))
+  (map (lambda (proc) (list 'primitive (cadr proc)))
+       primitive-procedures))
 
 (define apply-in-underlying-scheme apply)
 
@@ -561,9 +563,9 @@
      (driver-loop))))
 
 (define (prompt-for-input string)
-(newline) (newline) (display string) (newline) )
+  (newline) (newline) (display string) (newline) )
 (define (announce-output string)
-(newline) (display string) (newline) )
+  (newline) (display string) (newline) )
 
 
 (define (user-print object)
@@ -572,28 +574,71 @@
                      (procedure-parameters object)
                      (procedure-body object)
                      '<procedure-env>))
-(display object)))
+      (display object)))
 
 
 ;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
 
-(driver-loop)
-#|
-
+(ambeval '(define (require p) (if (not p) (amb)))
+         the-global-environment
+         (lambda (value fail) 'ok-require)
+         (lambda () 'failed))
 
 (define (require p)
   (if (not p) (amb)))
 
+(driver-loop)
 
-(define (an-element-of items)
-  (require (not (null? items)))
-  (amb (car items) (an-element-of (cdr items))))
 
-(define (an-integer-starting-from n)
-  (amb n (an-integer-starting-from (+ n 1))))
 
-(define (an-integer-between a b)
-
-  (require (<= a b))
-  (amb a (an-integer-between (+ a 1) b)))
+;user-initial-environment
+#|
+(define (multiple-dwelling)
+  (let ((baker (amb 1 2 3 4 5) )
+        (cooper (amb 1 2 3 4 5) )
+        (fletcher (amb 1 2 3 4 5) )
+        (miller (amb 1 2 3 4 5) )
+        (smith (amb 1 2 3 4 5) ) )
+    (require
+      (distinct? (list baker cooper fletcher miller smith) ) )
+    (require (not ( = baker 5) ) )
+    (require (not ( = cooper 1 ) ) )
+    (require (not ( = fletcher 5) ) )
+    (require (not ( = fletcher 1 ) ) )
+    (require (> miller cooper) )
+    (require (not ( = (abs (- smith fletcher) ) 1 ) ) )
+    (require (not ( = (abs (- fletcher cooper) ) 1 ) ) )
+    (list (list 'baker baker)
+          (list 'cooper cooper)
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith) ) ) )
 |#
+
+(define (distinct? items)
+  (cond ((null? items) true)
+        ((null? (cdr items)) true)
+        ((member (car items) (cdr items)) false)
+        (else (distinct? (cdr items)))))
+
+(define (multiple-dwelling)
+  (let ((baker (amb 1 2 3 4 5))
+        (cooper (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller (amb 1 2 3 4 5))
+        (smith (amb 1 2 3 4 5)))
+    (require
+      (distinct? (list baker cooper fletcher miller smith)))
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not ( = (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper)
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(multiple-dwelling)

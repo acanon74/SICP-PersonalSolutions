@@ -491,13 +491,13 @@
 (define primitive-procedures
 (list (list '+ +)
       (list '- -)
+      (list '= =)
       (list '* *)
       (list '/ /)
       (list '< <)
       (list '> >)
       (list '<= <=)
       (list '>= >=)
-      
       (list 'not not)
       (list 'list list)
       (list 'car car)
@@ -577,23 +577,16 @@
 
 ;(eval (let ((x 2) (y 0)) (* x 6 y)) the-global-environment)
 
-(driver-loop)
-#|
-
+(ambeval '(define (require p) (if (not p) (amb)))
+         the-global-environment
+         (lambda (value fail) 'ok-require)
+         (lambda () 'failed))
 
 (define (require p)
   (if (not p) (amb)))
 
+(driver-loop)
 
-(define (an-element-of items)
-  (require (not (null? items)))
-  (amb (car items) (an-element-of (cdr items))))
 
-(define (an-integer-starting-from n)
-  (amb n (an-integer-starting-from (+ n 1))))
 
-(define (an-integer-between a b)
-
-  (require (<= a b))
-  (amb a (an-integer-between (+ a 1) b)))
-|#
+;user-initial-environment

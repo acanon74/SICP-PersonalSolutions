@@ -1,0 +1,12 @@
+#lang sicp
+
+
+(and (supervisor ?name (Bitdiddle Ben))
+     (address ?name ?address))
+
+(and (salary (Bitdiddle Ben) ?ben-salary)
+     (salary ?person ?amount)
+     (lisp-value < ?amount ?ben-salary))
+
+(and (supevisor ?person ?supervisor)
+     (not (job ?supervisor (computer . ?title))))

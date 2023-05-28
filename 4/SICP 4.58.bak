@@ -1,0 +1,7 @@
+#lang sicp
+(rule (big-shot? ?person ?division)
+
+      (and (job ?person (?division))
+           (supervisor ?person ?supervisor)
+           (job ?supervisor (not (?division))))
+      )

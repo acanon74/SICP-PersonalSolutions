@@ -1,0 +1,16 @@
+#lang sicp
+
+;(can-do-job (computer wizard) (computer programmer))
+;(can-do-job (computer wizard) (computer technician))
+
+(rule (same ?x ?x))
+
+(rule (replace ?p1 ?p2)
+
+      (and (or (and (job ?p1 ?job)
+                    (job ?p2 ?job))
+               (and (job ?p1 ?possible-job)
+                    (job ?p2 ?to-replace)
+                    (can-do-job ?possible-job ?to-replace)))
+           (not (?same ?p1 ?p2))
+           )
