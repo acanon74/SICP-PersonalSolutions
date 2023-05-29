@@ -1,0 +1,8 @@
+#lang sicp
+;Someone is a wheel if he supervises someone who is in turn
+;a supervisor
+
+(rule (wheel ?person)
+      (and (supervisor ?middle-manager ?person)
+           (supervisor ?x ?middle-manager)))
+

@@ -1,0 +1,8 @@
+#lang sicp
+#|
+
+Since it is a stream, the second mention of THEASSERTIONS will
+generate the next item in the stream. Esentially erasing it from
+existance, this is not a desirable behavior.
+
+|#
