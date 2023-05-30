@@ -1,0 +1,34 @@
+#lang sicp
+(define (negate operands frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     ( if (stream-null? (qeval (negated-query operands)
+                               (singleton-stream frame) ) )
+          (singleton-stream frame)
+          the-empty-stream) )
+   frame-stream) )
+
+(put 'not 'qeval negate)
+
+(put 'unique 'qeval uniquely-asserted)
+
+(uniquely-asserted (contents exp) frame-stream)
+
+(define (uniquely-asserted exp frame-stream)
+  
+  (stream-flatmap
+
+   (lambda (frame)
+
+     (let ((frame-stream-result (qeval exp (singleton-stream frame))))
+
+       (if (and (not (stream-null? frame-stream-result))
+                (stream-null? (stream-cdr frame-stream-result)))
+           
+           frame-stream-result
+           the-empty-stream)
+       )
+     )
+   frame-stream
+  
+   ))
