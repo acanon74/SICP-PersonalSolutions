@@ -1,0 +1,16 @@
+#lang sicp
+#|
+Originally written on a piece of paper. It doesnt make sense here
+without arrows and boxes, specially after the fact.
+
+2 done   2 after1
+2 after1 1 after2
+2 after2 0 after3
+
+val b n
+
+1 2 2 = val 2 call to after2
+2 2 1 = val 4 call to after1
+4 2 0 = val 8 call to done
+
+|#

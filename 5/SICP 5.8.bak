@@ -1,0 +1,23 @@
+#lang sicp
+start
+(goto (label here) )
+here
+(assign a ( const 3) )
+(goto (label there) )
+here
+(assign a (const 4) )
+(goto (label there) )
+there
+
+
+#|
+
+a will be 4.
+
+This is because we are not checking for pre-existing values in the
+procedure list. Given the nature of a list, the parser will
+add both here labels, each with their respective following instructions.
+Since we check for labels recursively, we will use the newest
+instance of the label, which is the one assigning 4 to a.
+
+|#
